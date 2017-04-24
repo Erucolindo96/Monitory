@@ -12,26 +12,34 @@
 #include <semaphore.h>
 #include <stdlib.h>
 
-#define BUF_SIZE 128
+#define SIZE 10 //rozmiar bufora
 
 typedef struct buf_t
 {
-    char value[BUF_SIZE];
+    char value[SIZE];
     sem_t mutex;
-    sem_t buf_empty;
+    sem_t buf_empty_1, buf_empty_2;
     sem_t buf_full;
+    sem_t more_than_1, more_than_2;
+    int i_add, i_del_1, i_del_2;
+    int counter;
 
 }buf_t;
 
 //inicjuje odpowiednio semafory
 void buf_init_sem(buf_t *allocated_buffer);
 
+
+//wersje operacji dodawania i usuwania sa stworzone dla 1 i 2 producenta/klienta
+
 //Dodaje element do bufora, wykorzystujac semafory
-void buf_add(buf_t *buffer,char element);
+void buf_add_one(buf_t *buffer,char element);
 
-//usuwa ostatnio wstawiony element bufora i zwraca go
-char buf_remove(buf_t *buffer);
+void buf_add_two(buf_t *buffer,char element_1, char element_2);
 
+//usuwa element z kolejki bufora i zwraca go
+char buf_remove_1_client(buf_t *buffer);
 
+char buf_remove_2_client(buf_t *buffer);
 
 #endif // BUFORY_H_INCLUDED

@@ -57,42 +57,64 @@ buf_t* createSharedMemoryBuffer(void)
 }
 
 
-
-void kod_producenta()
+void deleteSharedMemoryBuffer(void)
 {
-    char litera;
-    int val;
-    //produkuje 10 liter, od a w gore
-    //gdy skonczy produkowac, ginie
-    for(litera = 'a';litera < ('a'+10);++litera)
-    {
-        buf_add(shared_buffer, litera);
-        //printf("Wyprodukowano litere %c\n", litera);
-
-        sem_getvalue(&(shared_buffer->buf_empty), &val);
-        //printf("Wartosc semafora empty:%d\n", val);
-
-        sleep(1);//czekaj 1 s
-    }
-
-
-    exit(0);
+    char name[16];
+    strcpy(name, MEMORY_NAME);
+    shm_unlink(name);
+    printf("Pamiec wspoldzielona usunieta\n");
 }
 
-void kod_konsumenta()
+void kod_producenta_1(void)
 {
-    char litera;
-    int i, val;
-    for(i = 0;i < 10;++i)
+    char i;
+    for(i='a';i<'a'+25;++i)
     {
-        litera = buf_remove(shared_buffer);
-        printf("Skonsumowano litere %c\n", litera);
-
-        sem_getvalue(&(shared_buffer->buf_empty), &val);
-        printf("Wartosc semafora empty:%d\n", val);
+        //printf("Producent_1: rozpoczynam dodawanie\n");
+        buf_add_one(shared_buffer,i);
+        printf("Producent 1: Dodano litere %c\n\n", i);
         sleep(1);
     }
     exit(0);
+}
+void kod_producenta_2(void)
+{
+    char i;
+    for(i='A';i<'A'+5;++i)
+    {
+       // printf("Producent_2: rozpoczynam dodawanie\n");
+        buf_add_two(shared_buffer,i, i+1);
+        printf("Producent 2: Dodano litery %c oraz %c\n\n", i, 'Z'-(i-'A') );
+        sleep(2);
+    }
+    exit(0);
+}
+
+void kod_konsumenta_1(void)
+{
+    char litera;
+    int i;
+    for(i=0; i<25;++i)
+    {
+        litera = buf_remove_1_client(shared_buffer);
+        printf("Konsument_1: Usunieto litere %c\n\n", litera);
+        sleep(2);
+    }
+    exit(0);
+}
+
+void kod_konsumenta_2(void)
+{
+    char litera;
+    int i;
+    for(i=0; i<25;++i)
+    {
+        litera = buf_remove_2_client(shared_buffer);
+        printf("Konsument_2: Usunieto litere %c\n\n", litera);
+        sleep(5);
+    }
+    exit(0);
+
 }
 
 
@@ -100,40 +122,53 @@ int main(void)
 {
     //buf_t *shared_buffer;
     //int value;
-    char name[16];
+//    char name[16];
 
     printf("Tworzenie pamieci wspoldzielonej\n");
 
     shared_buffer = createSharedMemoryBuffer();
     if(shared_buffer != NULL)
-        printf("Przydzielono pamiec dla bufora\n");
+        printf("Przydzielono pamiec dla bufora\n\n");
 
    // printf("Adres bufora: %d, wartosc 99 elementu: %d\n", (unsigned int)shared_buffer, shared_buffer->value[99]);
     buf_init_sem(shared_buffer);
 
 
-
-
-
-    if(fork() == 0)//tworzymy procudenta
+    if(fork() == 0)//tworzymy proces producenta a potem dzielimy go na dwoch producentow
     {
-        kod_producenta();
+        if(fork() == 0)//forkujemy i w tego ifa wchodzi dziecko
+        {
+            printf("Proces producent_1 utworzony\n\n");
+            kod_producenta_1();//ten proces ginie pod koniec wykonania tej procedury
+        }
+        else//a w tego rodzic
+        {
+            //printf("Proces producent_2 utworzony\n\n");
+            //kod_producenta_2();//ten proces ginie pod koniec wykonania tej procedury
+            exit(0);
+        }
+
     }
 
-    sleep(10);
-
-    if(fork() == 0)//tworzymy konsumenta
+    if(fork()==0)//tworzymy proces konsumenta a potem dzielimy go na dwoch konsumentow
     {
-        kod_konsumenta();
+        if(fork()==0)//forkujemy i w tego ifa wchodzi dziecko
+        {
+            printf("Proces konsument_1 utworzony\n\n");
+            kod_konsumenta_1();////ten proces ginie pod koniec wykonania tej procedury
+        }
+        else//a w tego rodzic
+        {
+            printf("Proces konsument_2 utworzony\n\n");
+            kod_konsumenta_2();//ten proces ginie pod koniec wykonania tej procedury
+        }
     }
 
-    //sleep(100);
-
+    sleep(600);//czekamy 2 minuty az procesy sie wykonaja
+    printf("Procesy wykonaly swoja prace. Koniec programu demonstacyjnego\n");
     //usuwanie pamieci zaallokowanej
-
-    strcpy(name, MEMORY_NAME);
-    shm_unlink(name);
-
+    deleteSharedMemoryBuffer();
+    exit(0);
 
 
 

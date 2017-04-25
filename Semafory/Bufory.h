@@ -19,7 +19,7 @@ typedef struct buf_t
     char value[SIZE];
     sem_t mutex;
     sem_t buf_empty_1, buf_empty_2;
-    sem_t buf_full;
+    sem_t buf_full, buf_full_2;
     sem_t more_than_1, more_than_2;
     int i_add, i_del_1, i_del_2;
     int counter;
@@ -41,5 +41,7 @@ void buf_add_two(buf_t *buffer,char element_1, char element_2);
 char buf_remove_1_client(buf_t *buffer);
 
 char buf_remove_2_client(buf_t *buffer);
+
+//void print_buffer(buf_t *buffer);
 
 #endif // BUFORY_H_INCLUDED

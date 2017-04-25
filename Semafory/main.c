@@ -68,22 +68,22 @@ void deleteSharedMemoryBuffer(void)
 void kod_producenta_1(void)
 {
     char i;
-    for(i='a';i<'a'+25;++i)
+    for(i='a';i<'a'+5;++i)
     {
         //printf("Producent_1: rozpoczynam dodawanie\n");
         buf_add_one(shared_buffer,i);
         printf("Producent 1: Dodano litere %c\n\n", i);
-        sleep(1);
+        sleep(2);
     }
     exit(0);
 }
 void kod_producenta_2(void)
 {
     char i;
-    for(i='A';i<'A'+5;++i)
+    for(i='A';i<'A'+8;++i)
     {
        // printf("Producent_2: rozpoczynam dodawanie\n");
-        buf_add_two(shared_buffer,i, i+1);
+        buf_add_two(shared_buffer,i, 'Z'-(i-'A'));
         printf("Producent 2: Dodano litery %c oraz %c\n\n", i, 'Z'-(i-'A') );
         sleep(2);
     }
@@ -98,7 +98,7 @@ void kod_konsumenta_1(void)
     {
         litera = buf_remove_1_client(shared_buffer);
         printf("Konsument_1: Usunieto litere %c\n\n", litera);
-        sleep(2);
+        sleep(3);
     }
     exit(0);
 }
@@ -111,7 +111,7 @@ void kod_konsumenta_2(void)
     {
         litera = buf_remove_2_client(shared_buffer);
         printf("Konsument_2: Usunieto litere %c\n\n", litera);
-        sleep(5);
+        sleep(1);
     }
     exit(0);
 
@@ -143,9 +143,9 @@ int main(void)
         }
         else//a w tego rodzic
         {
-            //printf("Proces producent_2 utworzony\n\n");
-            //kod_producenta_2();//ten proces ginie pod koniec wykonania tej procedury
-            exit(0);
+            printf("Proces producent_2 utworzony\n\n");
+            kod_producenta_2();//ten proces ginie pod koniec wykonania tej procedury
+            //exit(0);
         }
 
     }
@@ -164,7 +164,7 @@ int main(void)
         }
     }
 
-    sleep(600);//czekamy 2 minuty az procesy sie wykonaja
+    sleep(120);//czekamy 2 minuty az procesy sie wykonaja
     printf("Procesy wykonaly swoja prace. Koniec programu demonstacyjnego\n");
     //usuwanie pamieci zaallokowanej
     deleteSharedMemoryBuffer();

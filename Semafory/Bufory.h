@@ -12,7 +12,7 @@
 #include <semaphore.h>
 #include <stdlib.h>
 
-#define SIZE 10 //rozmiar bufora
+#define SIZE 10 //rozmiar bufora - musi byc przynajmniej 3
 
 typedef struct buf_t
 {

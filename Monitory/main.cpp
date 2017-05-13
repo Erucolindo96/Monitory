@@ -34,7 +34,7 @@ void consumentFirstCode()
 {
     int ret;
     std::cout<<"Konsument 1 gotowy!"<<" "<<std::endl;
-    for(int i = 0; i<10;++i)
+    for(int i = 0; i<20;++i)
     {
         ret = my_buffer.popConsumentFirst();
         std::cerr<<"K1: Zdjeto element "<<ret<<" "<<std::endl;
@@ -46,7 +46,7 @@ void consumentSecondCode()
 {
     int ret;
     std::cout<<"Konsument 2 gotowy!"<<" "<<std::endl;
-    for(int i = 0; i<10;++i)
+    for(int i = 0; i<20;++i)
     {
         ret = my_buffer.popConsumentSecond();
         std::cerr<<"K2: Zdjeto element "<<ret<<" "<<std::endl;

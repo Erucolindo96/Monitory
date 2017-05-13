@@ -21,7 +21,7 @@ public:
     void pushOneElement(const T &element)
     {
         enter();
-        while(buffer_.size() >= MAX_ITEMS_)
+        if(buffer_.size() >= MAX_ITEMS_ )
         {
             //wait(canPush);
             wait(canPushOne);//czekaj dopoki konsumenci nie zwolnia elementu
@@ -41,7 +41,7 @@ public:
     {
         enter();
 
-        while(buffer_.size() >= MAX_ITEMS_ - 1)//jesli w buforze jest albo tylko jedno miejsce, albo nie ma go wcale
+        if(buffer_.size() >= MAX_ITEMS_ - 1)//jesli w buforze jest albo tylko jedno miejsce, albo nie ma go wcale
         {
            // wait(canPush);
             wait(canPushTwo);//cos jest nie tak z producentami, pozwalaja dodawac za duzo elementow
@@ -89,10 +89,10 @@ public:
         if(!wasFirstConsumentPop && !wasSecondConsumentPop)//jesli obydwie flagi konsumentów == false, to element został usunięty, a nie tylko przeczytany
         {//wiec mozemy zasygnalizowac mozliwosc dodawania
 
-            if(buffer_.size() < MAX_ITEMS_ - 1)//jesli sa chociaz dwa wolne miejsca
+            if(buffer_.size() < MAX_ITEMS_ - 2)//jesli sa chociaz dwa wolne miejsca
                 signal(canPushTwo);
 
-            if(buffer_.size() < MAX_ITEMS_)//jesli jest chociaz jedno wolne miejsce
+            if(buffer_.size() < MAX_ITEMS_ - 1 )//jesli jest chociaz jedno wolne miejsce
                 signal(canPushOne);
         }
 

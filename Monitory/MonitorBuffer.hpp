@@ -3,7 +3,7 @@
 
 #include<vector>
 #include"monitor.h"
-
+#include<iostream>
 enum Consument
 {
 FIRST,
@@ -18,55 +18,67 @@ public:
     MonitorBuffer(const unsigned int MAX_ITEMS):MAX_ITEMS_(MAX_ITEMS)
     {}
 
+    /**
+     * @brief pushOneElement Wkłada jeden element do bufora
+     * @param element Wkładany element, kopiowany i wstawiany do bufora
+     */
     void pushOneElement(const T &element)
     {
         enter();
         if(buffer_.size() >= MAX_ITEMS_ )
         {
-            //wait(canPush);
             wait(canPushOne);//czekaj dopoki konsumenci nie zwolnia elementu
         }
         buffer_.push_back(element);
 
         if(buffer_.size() >= MIN_ELEM_)
         {
-            signal(canPop);
-
+            signal(canPop);//sygnalizuje, ze konsumenci moga czytac(sami stwierdzą, czy moga potem element usunac)
         }
 
         leave();
     }
 
+    /**
+     * @brief pushTwoElements Wkłada 2 elementy do bufora na raz.
+     * @param elem_1 Pierwszy element, kopiowany i wstawiany do bufora.
+     * @param elem_2 Drugi element, kopiowany i wstawiany do bufora.
+     */
     void pushTwoElements(const T &elem_1, const T &elem_2)
     {
         enter();
 
         if(buffer_.size() >= MAX_ITEMS_ - 1)//jesli w buforze jest albo tylko jedno miejsce, albo nie ma go wcale
         {
-           // wait(canPush);
-            wait(canPushTwo);//cos jest nie tak z producentami, pozwalaja dodawac za duzo elementow
+            wait(canPushTwo);
         }
+
         buffer_.push_back(elem_1);
         buffer_.push_back(elem_2);
 
         if(buffer_.size() >= MIN_ELEM_)
         {
-            signal(canPop);
+            signal(canPop);//sygnalizuje, ze konsumenci moga czytac(sami stwierdzą, czy moga potem element usunac)
 
         }
 
         leave();
     }
 
+    /**
+     * @brief popConsumentFirst Czyta jeden element z bufora. Jeśli drugi konsument już przeczytał ten element - to jest trwale usuwany z bufora
+     * @return Przeczytany element
+     */
     T popConsumentFirst()
     {
         T returned_elem;
         enter();
 
-        if(buffer_.size() < MIN_ELEM_  )//jesli jest zbyt malo elementow w buforze
+        if(buffer_.size() < MIN_ELEM_  )//jesli jest zbyt malo elementow w buforze by czytac
         {
-            wait(canPop);//czekamy
-            //teraz mamy 3 lub 4 elementy
+            wait(canPop);//czekamy az bedzie mozna czytac
+
+            //teraz mamy 3 lub 4 elementy - rozpatrujemy te dwa przypadki
             if(buffer_.size() == MIN_ELEM_)
             {
                 returned_elem = situationMIN_ELEM_forFirst();
@@ -77,18 +89,22 @@ public:
             }
 
         }
-        else if(buffer_.size() == MIN_ELEM_)//wtedy nie mozna usunac elementu
+        else if(buffer_.size() == MIN_ELEM_)
         {
             returned_elem = situationMIN_ELEM_forFirst();
         }
-        else //jest wiecej niz MIN_ELEM - mozna swobodnie usuwac
+        else //jest wiecej niz MIN_ELEM - mozna swobodnie czytac
         {
             returned_elem = situationNormalForFirst();
         }
 
-        if(!wasFirstConsumentPop && !wasSecondConsumentPop)//jesli obydwie flagi konsumentów == false, to element został usunięty, a nie tylko przeczytany
-        {//wiec mozemy zasygnalizowac mozliwosc dodawania
+        if(!wasFirstConsumentRead && !wasSecondConsumentRead)
+        {//jesli obydwie flagi konsumentów == false, to element został usunięty, a nie tylko przeczytany
 
+            //wiec mozemy zasygnalizowac mozliwosc czytania kolejnego elementu
+            signal(canReadNext);
+
+            //wiec mozemy zasygnalizowac mozliwosc dodawania elementow
             if(buffer_.size() < MAX_ITEMS_ - 2)//jesli sa chociaz dwa wolne miejsca
                 signal(canPushTwo);
 
@@ -96,31 +112,25 @@ public:
                 signal(canPushOne);
         }
 
-
-/*
-        if(buffer_.size() < MAX_ITEMS_)
-            signal(canPush);
-
-        if(buffer_.size() < MAX_ITEMS_ - 1)//jesli sa chociaz dwa wolne miejsca
-            signal(canPushTwo);
-
-        if(buffer_.size() < MAX_ITEMS_)//jesli jest chociaz jedno wolne miejsce
-            signal(canPushOne);
-*/
         leave();
         return returned_elem;
 
     }
-
+    /**
+     * @brief popConsumentSecond Czyta jeden element z bufora.
+     * Jeśli pierwszy konsument już przeczytał ten element - to jest trwale usuwany z bufora
+     * @return Przeczytany element
+     */
     T popConsumentSecond()
     {
         T returned_elem;
         enter();
 
-        if(buffer_.size() < MIN_ELEM_  )//jesli jest zbyt malo elementow w buforze
+        if(buffer_.size() < MIN_ELEM_  )//jesli jest zbyt malo elementow by w ogole czytac
         {
             wait(canPop);//czekamy
-            //teraz mamy 3 lub 4 elementy
+
+            //teraz mamy 3 lub 4 elementy  - ropatrujemy obydwa przypadki
             if(buffer_.size() == MIN_ELEM_)
             {
                 returned_elem = situationMIN_ELEM_forSecond();
@@ -131,7 +141,7 @@ public:
             }
 
         }
-        else if(buffer_.size() == MIN_ELEM_)//wtedy nie mozna usunac elementu
+        else if(buffer_.size() == MIN_ELEM_)
         {
             returned_elem = situationMIN_ELEM_forSecond();
         }
@@ -141,24 +151,20 @@ public:
         }
 
 
-        if(!wasFirstConsumentPop && !wasSecondConsumentPop)//jesli obydwie flagi konsumentów == false, to element został usunięty, a nie tylko przeczytany
-        {//wiec mozemy zasygnalizowac mozliwosc dodawania
+        if(!wasFirstConsumentRead && !wasSecondConsumentRead)
+        {//jesli obydwie flagi konsumentów == false, to element został usunięty, a nie tylko przeczytany
 
+            //wiec mozemy zasygnalizowac mozliwosc czytania kolejnego elementu
+            signal(canReadNext);
+
+            //wiec mozemy zasygnalizowac mozliwosc dodawania
             if(buffer_.size() < MAX_ITEMS_ - 1)//jesli sa chociaz dwa wolne miejsca
                 signal(canPushTwo);
 
             if(buffer_.size() < MAX_ITEMS_)//jesli jest chociaz jedno wolne miejsce
                 signal(canPushOne);
         }
-/*        if(buffer_.size() < MAX_ITEMS_)
-            signal(canPush);
 
-        if(buffer_.size() < MAX_ITEMS_ - 1)//jesli sa chociaz dwa wolne miejsca
-            signal(canPushTwo);
-
-        if(buffer_.size() < MAX_ITEMS_)//jesli jest chociaz jedno wolne miejsce
-            signal(canPushOne);
-*/
         leave();
         return returned_elem;
 
@@ -175,6 +181,18 @@ public:
         return ret_val;
     }
 
+    void printBuffer()
+    {
+        enter();
+
+        std::cout<<"Zawartość bufora: ";
+        for(auto iter = buffer_.begin(); iter!=buffer_.end();++iter)
+        {
+            std::cout<<*iter<<" ";
+        }
+        std::cout<<std::endl;
+    }
+
 
 private:
 
@@ -184,7 +202,8 @@ private:
     {
         return other.waitingCount;
     }
-    T PopAndDelete()
+
+    T readAndDelete()
     {
         auto first_elem  = buffer_.begin();
         T temp = *first_elem;
@@ -195,15 +214,18 @@ private:
     T situationNormalForFirst()
     {
         T ret;
-        if(wasSecondConsumentPop)
+        if(wasSecondConsumentRead)//drugi konsumnet przeczytal
         {
-            ret = PopAndDelete();
-            wasSecondConsumentPop = false;
+            ret = readAndDelete();
+            wasSecondConsumentRead = false;//zerujemy flage czytania przez drugiego konsumenta
         }
-        else
+        else//drugi konsument nie przeczytal - nie mozemy usuwac, tylko czytac
         {
+            if(wasFirstConsumentRead)//jesli raz odczytalismy znak, i chcemy czytac jeszcze raz, ale drugi konsument jeszcze nie przeczytał
+                wait(canReadNext);//to czekamy az drugi konsument go odczyta, i dopiero wtedy mozemy czytac nastepny
+
             ret = buffer_.front();
-            wasFirstConsumentPop = true;
+            wasFirstConsumentRead = true;//ustawiamy flage, ze przeczytalismy juz znak
         }
         return ret;
     }
@@ -211,15 +233,18 @@ private:
     T situationNormalForSecond()
     {
         T ret;
-        if(wasFirstConsumentPop)
+        if(wasFirstConsumentRead)//pierwszy konsumnet przeczytal - czytamy i usuwamy
         {
-            ret = PopAndDelete();
-            wasFirstConsumentPop = false;
+            ret = readAndDelete();
+            wasFirstConsumentRead = false;//zerujemy flage pierwszego konsumenta
         }
-        else
+        else//pierwszy konsument nie przeczytal - mozemy tylko czytac
         {
+            if(wasSecondConsumentRead)//jesli raz odczytalismy znak, i chcemy czytac jeszcze raz, ale drugi konsument jeszcze nie przeczytał
+                wait(canReadNext);//to czekamy az drugi konsument go odczyta, i dopiero wtedy mozemy czytac nastepny
+
             ret = buffer_.front();
-            wasSecondConsumentPop = true;
+            wasSecondConsumentRead = true;//ustawiamy flage, ze przeczytalismy
         }
         return ret;
     }
@@ -228,16 +253,19 @@ private:
     T situationMIN_ELEM_forFirst()
     {
         T ret;
-        if(wasSecondConsumentPop)
+        if(wasSecondConsumentRead)//drugi konsumnet przeczytals, alenie mozemy trwale usunac elementu, bo w buforze bylo by ich za malo
         {
             wait(canPop);//zaczekaj az ktos doda element, potem usun
-            ret = PopAndDelete();
-            wasSecondConsumentPop = false;
+            ret = readAndDelete();
+            wasSecondConsumentRead = false;
         }
         else//drugi konsument nie odczytal elementu - czytamy bez usuwania
         {
+            if(wasFirstConsumentRead)
+                wait(canReadNext);
+
             ret = buffer_.front();
-            wasFirstConsumentPop = true;
+            wasFirstConsumentRead = true;
         }
         return ret;
     }
@@ -245,27 +273,30 @@ private:
     T situationMIN_ELEM_forSecond()
     {
         T ret;
-        if(wasFirstConsumentPop)//nie mozemy trwale usunac elementu, bo w buforze bylo by ich za malo
+        if(wasFirstConsumentRead)//drugi konsument przeczytal, nie mozemy trwale usunac elementu, bo w buforze bylo by ich za malo
         {
             wait(canPop);//zaczekaj az ktos doda element, potem usun
-            ret = PopAndDelete();
-            wasFirstConsumentPop = false;
+            ret = readAndDelete();
+            wasFirstConsumentRead = false;
+
         }
         else//drugi konsument nie odczytal elementu - czytamy bez usuwania
         {
+            if(wasSecondConsumentRead)
+                wait(canReadNext);
+
             ret = buffer_.front();
-            wasSecondConsumentPop = true;
+            wasSecondConsumentRead = true;
         }
         return ret;
     }
 
-    mutable Condition canPushOne, canPushTwo, canPush;
-    mutable Condition canPop;//, canDeleteFirstElem;
+    mutable Condition canPushOne, canPushTwo;
+    mutable Condition canPop, canReadNext;//, canDeleteFirstElem;
 
     std::vector<T> buffer_;
-    //T elementToPop;
 
-    mutable bool wasFirstConsumentPop, wasSecondConsumentPop;//mowi czy drugi konsument usunał ten element
+    mutable bool  wasFirstConsumentRead, wasSecondConsumentRead;//mowi czy drugi konsument usunał ten element
 
     const unsigned int MAX_ITEMS_;
     const unsigned int MIN_ELEM_ = 3;//minimalna ilość elementów - gdy w buforze jest więcej elementów to można je wyciągać z bufora
